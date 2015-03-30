@@ -27,8 +27,8 @@ def pack_ipv4_header(version, ihl, dscp, ecn, total_len, ident, flags, frag_offs
 def pack_tcp_header(src_port, dst_port, seq_num, ack_num, data_offset, ns, cwr, ece, urg, ack, psh, rst, syn, fin, window_size, checksum, urg_ptr):
     return struct.pack("!HHIIBBHHH", src_port, dst_port, seq_num, ack_num, ((data_offset & 0xF) << 4) | (ns & 1), ((cwr & 1) << 7) | ((ece & 1) << 6) | ((urg & 1) << 5) | ((ack & 1) << 4) | ((psh & 1) << 3) | ((rst & 1) << 2) | ((syn & 1) << 1) | (fin & 1), window_size, checksum, urg_ptr)
 
-def tcp_checksum(unpacked_ipv4_header, packed_tcp_header, data_len):
-    data = struct.pack('!IIBBH', unpacked_ipv4_header['src_ip'], unpacked_ipv4_header['dst_ip'], 0, TCP, data_len + 20) + packed_tcp_header
+def tcp_checksum(unpacked_ipv4_header, packed_tcp_header, data_len, payload):
+    data = struct.pack('!IIBBH', unpacked_ipv4_header['src_ip'], unpacked_ipv4_header['dst_ip'], 0, TCP, data_len + 20) + packed_tcp_header + payload
     s = 0
     for i in range(0, len(data), 2):
         w = struct.unpack('!H', data[i:i+2])[0]
@@ -76,7 +76,7 @@ def forge_response(ivp4_header, tcp_header, data):
                     dst_addr=ipv4_header['dst_ip'])
             response_tcp_without_checksum = forge_tcp_header(0)
             my_tcp_checksum=tcp_checksum(ipv4_header,
-                    response_tcp_without_checksum, data_len)
+                    response_tcp_without_checksum, data_len, data)
             response_tcp_header = forge_tcp_header(my_tcp_checksum)
             header = response_ipv4_header + response_tcp_header
             if data != None:
